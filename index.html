@@ -27,4 +27,14 @@ $('resetPassword').onclick=async()=>{const email=$('email').value.trim();if(!ema
 onAuthStateChanged(auth,user=>{if(unsubscribe){unsubscribe();unsubscribe=null}bookings={};uid=user&&users[user.uid]?user.uid:null;$('login').classList.toggle('hidden',!!uid);$('app').classList.toggle('hidden',!uid);closeDialog();if(!uid){$('loginStatus').textContent=user?'Kontot har inte tillgång till bandets schema.':'';if(user)signOut(auth);return}$('who').textContent=`Inloggad: ${users[uid]}`;render();setStatus('Synkroniserar…');unsubscribe=onSnapshot(collection(db,'bookings'),snapshot=>{bookings={};snapshot.forEach(item=>bookings[item.id]=item.data());render();if(selected)openDialog(selected);setStatus('✓ Synkroniserad med Firebase')},err=>setStatus('Kunde inte läsa databasen. Kontrollera Firestore-reglerna.'))});
 $('toggle').onclick=async()=>{if(!selected||!uid)return;const key=selected,button=$('toggle');button.disabled=true;$('dialogStatus').textContent='Sparar…';try{await runTransaction(db,async tx=>{const ref=doc(db,'bookings',key),snap=await tx.get(ref),data=snap.exists()?snap.data():{},old=Array.isArray(data.attendees)?data.attendees:[],next=old.includes(uid)?old.filter(x=>x!==uid):[...old,uid];tx.set(ref,{attendees:next,note:typeof data.note==='string'?data.note:'',updatedAt:serverTimestamp(),updatedBy:uid,changeType:next.includes(uid)?'booked':'cancelled'},{merge:true})});$('dialogStatus').textContent='Sparat!'}catch(e){$('dialogStatus').textContent='Kunde inte spara. Kontrollera din anslutning och behörighet.'}finally{button.disabled=false}};
 $('saveNote').onclick=async()=>{if(!selected||!uid)return;const key=selected,note=$('note').value.trim(),button=$('saveNote');button.disabled=true;$('dialogStatus').textContent='Sparar…';try{await setDoc(doc(db,'bookings',key),{note,updatedAt:serverTimestamp(),updatedBy:uid,changeType:'note'},{merge:true});$('dialogStatus').textContent='Anteckningen sparad!'}catch(e){$('dialogStatus').textContent='Kunde inte spara anteckningen.'}finally{button.disabled=false}};
-</script></body></html>
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(() => console.log('Service worker aktiverad'))
+      .catch(error => console.error('Service worker:', error));
+  });
+}
+</script>
+</body></html>
