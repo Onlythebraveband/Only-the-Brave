@@ -13,6 +13,7 @@
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,sendPasswordResetEmail} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {getFirestore,collection,doc,onSnapshot,runTransaction,updateDoc,setDoc,serverTimestamp,deleteDoc} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js'
+import {getMessaging,getToken,isSupported} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging.js';
 const firebaseConfig={apiKey:'AIzaSyAkkjQPBB-Az2INjsPply_NfiVlHpEwBzY',authDomain:'only-the-brave-7a597.firebaseapp.com',projectId:'only-the-brave-7a597',storageBucket:'only-the-brave-7a597.firebasestorage.app',messagingSenderId:'380157970095',appId:'1:380157970095:web:619a1de8ccedb8e184f65a',measurementId:'G-GVQRR34WW3'};
 const users={'B4GzEq7NBoUonHA0tSnmVPnR4Ew1':'Patric','0zGYKZxjbRYGmhQmknYlgV2mlGV2':'Gabriel','ZdxY4OQDSgPmFXXnnPju4LPo1553':'Fredrik','YyZ8bWXrWYS4VugHfk4dSobMkmv2':'Niklas','c0MzwUYoB9YzFihOaJ68tZbY86y1':'Andreas'};
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),$=id=>document.getElementById(id);let uid=null,unsubscribe=null,bookings={},monthOffset=0,selected=null;
