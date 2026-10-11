@@ -31,6 +31,56 @@ function closeDialog(){selected=null;$('overlay').classList.add('hidden')}
 $('close').onclick=closeDialog;$('overlay').addEventListener('click',e=>{if(e.target===$('overlay'))closeDialog()});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDialog()});$('prev').onclick=()=>{monthOffset--;render()};$('next').onclick=()=>{monthOffset++;render()};$('logout').onclick=()=>signOut(auth);
 $('loginForm').onsubmit=async e=>{e.preventDefault();$('loginStatus').textContent='Loggar in…';try{await signInWithEmailAndPassword(auth,$('email').value.trim(),$('password').value)}catch(err){$('loginStatus').textContent='Inloggningen misslyckades. Kontrollera e-post och lösenord.'}};
 $('resetPassword').onclick=async()=>{const email=$('email').value.trim();if(!email){$('loginStatus').textContent='Ange din e-postadress först.';return}try{await sendPasswordResetEmail(auth,email);$('loginStatus').textContent='Om adressen finns får du ett återställningsmejl.'}catch(e){$('loginStatus').textContent='Kunde inte skicka mejlet. Kontrollera adressen.'}};
+$('enablePush').onclick = async () => {
+  const status = $('pushStatus');
+
+  if (!uid) {
+    status.textContent = 'Logga in först.';
+    return;
+  }
+
+  try {
+    if (!('serviceWorker' in navigator)) {
+      throw new Error('Webbläsaren saknar stöd för Service Worker.');
+    }
+
+    if (!(await isSupported())) {
+      throw new Error('Firebase Messaging stöds inte här.');
+    }
+
+    const permission = await Notification.requestPermission();
+
+    if (permission !== 'granted') {
+      status.textContent = 'Mobilnotiser är inte tillåtna.';
+      return;
+    }
+
+    status.textContent = 'Registrerar mobilen…';
+
+    const registration = await navigator.serviceWorker.ready;
+    const messaging = getMessaging(app);
+
+    const token = await getToken(messaging, {
+      vapidKey: vapidKey,
+      serviceWorkerRegistration: registration
+    });
+
+    if (!token) {
+      throw new Error('Firebase kunde inte skapa en notistoken.');
+    }
+
+    await setDoc(doc(db, 'pushSubscriptions', uid), {
+      userId: uid,
+      token: token,
+      updatedAt: serverTimestamp()
+    });
+
+    status.textContent = '✓ Mobilnotiser registrerade!';
+  } catch (error) {
+    console.error('Pushregistrering:', error);
+    status.textContent = 'Kunde inte aktivera mobilnotiser: ' + error.message;
+  }
+};
 onAuthStateChanged(auth,user=>{if(unsubscribe){unsubscribe();unsubscribe=null}bookings={};uid=user&&users[user.uid]?user.uid:null;$('login').classList.toggle('hidden',!!uid);$('app').classList.toggle('hidden',!uid);closeDialog();if(!uid){$('loginStatus').textContent=user?'Kontot har inte tillgång till bandets schema.':'';if(user)signOut(auth);return}$('who').textContent=`Inloggad: ${users[uid]}`;render();setStatus('Synkroniserar…');unsubscribe=onSnapshot(collection(db,'bookings'),snapshot=>{bookings={};snapshot.forEach(item=>bookings[item.id]=item.data());render();if(selected)openDialog(selected);setStatus('✓ Synkroniserad med Firebase')},err=>setStatus('Kunde inte läsa databasen. Kontrollera Firestore-reglerna.'))});
 $('toggle').onclick=async()=>{if(!selected||!uid)return;const key=selected,button=$('toggle');button.disabled=true;$('dialogStatus').textContent='Sparar…';try{await runTransaction(db,async tx=>{const ref=doc(db,'bookings',key),snap=await tx.get(ref),data=snap.exists()?snap.data():{},old=Array.isArray(data.attendees)?data.attendees:[],next=old.includes(uid)?old.filter(x=>x!==uid):[...old,uid];tx.set(ref,{attendees:next,note:typeof data.note==='string'?data.note:'',updatedAt:serverTimestamp(),updatedBy:uid,changeType:next.includes(uid)?'booked':'cancelled'},{merge:true})});$('dialogStatus').textContent='Sparat!'}catch(e){$('dialogStatus').textContent='Kunde inte spara. Kontrollera din anslutning och behörighet.'}finally{button.disabled=false}};
 $('saveNote').onclick=async()=>{if(!selected||!uid)return;const key=selected,note=$('note').value.trim(),button=$('saveNote');button.disabled=true;$('dialogStatus').textContent='Sparar…';try{await setDoc(doc(db,'bookings',key),{note,updatedAt:serverTimestamp(),updatedBy:uid,changeType:'note'},{merge:true});$('dialogStatus').textContent='Anteckningen sparad!'}catch(e){$('dialogStatus').textContent='Kunde inte spara anteckningen.'}finally{button.disabled=false}};
