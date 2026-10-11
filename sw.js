@@ -27,3 +27,50 @@ self.addEventListener("fetch", event => {
     fetch(event.request).catch(() => caches.match(event.request))
   );
 });
+
+
+
+self.addEventListener("push", (event) => {
+  let data = {};
+
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (error) {
+    data = {
+      body: event.data ? event.data.text() : ""
+    };
+  }
+
+  const title = data.title || "🔥 Only the Brave 🔥";
+
+  const options = {
+    body: data.body || "En bokning har uppdaterats!",
+    icon: "./FB_IMG_1791467647880.jpg",
+    badge: "./FB_IMG_1791467647880.jpg",
+    tag: "only-the-brave-booking",
+    data: {
+      url: data.url || "./"
+    }
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  const targetUrl = new URL(
+    event.notification.data?.url || "./",
+    self.registration.scope
+  );
+
+  if (targetUrl.origin !== self.location.origin) {
+    return;
+  }
+
+  event.waitUntil(
+    clients.openWindow(targetUrl.href)
+  );
+});
