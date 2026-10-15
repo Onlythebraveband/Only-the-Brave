@@ -40,7 +40,9 @@ self.addEventListener("push", (event) => {
       body: event.data ? event.data.text() : ""
     };
   }
-
+  
+  data = data.data || data.notification || data;
+  
   const title = data.title || "🔥 Only the Brave 🔥";
 
   const options = {
